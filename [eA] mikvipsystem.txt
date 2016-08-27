@@ -1,0 +1,379 @@
+/*
+				.___  ___.  __   __  ___ 
+				|   \/   | |  | |  |/  / 
+				|  \  /  | |  | |  '  /  
+				|  |\/|  | |  | |    <   
+				|  |  |  | |  | |  .  \  
+				|__|  |__| |__| |__|\__\ 
+                         
+	= MikVipSystem
+	= by Mikéias
+	= eAthena
+
+-- TABELA PARA O FUNCIONAMENTO DO SCRIPT --
+-- OBS.: A tabela é inserida automáticamente.
+
+CREATE TABLE `viptable` (
+`id_account` int( 11 ) unsigned NOT NULL default '0',
+`login` varchar( 255 ) NOT NULL default '',
+`char_name` varchar( 100 ) NOT NULL default '',
+`minutos_vip` int( 11 ) unsigned NOT NULL default '0',
+`online` tinyint(2) NOT NULL default '0',
+`vipinsert` tinyint(2) NOT NULL default '0',
+PRIMARY KEY ( `id_account` )
+) ENGINE=MyISAM;
+
+*/
+
+function	script	updateStatus	{
+	query_sql "UPDATE `viptable` SET `online`='"+getarg(0)+"' WHERE `id_account`='"+getcharid(3)+"'";
+	return;
+}
+
+
+// -> PCCommands
+-	script	PremiumEvent	-1,{
+	
+	// LOGOU -- 
+	OnPCLoginEvent:
+		query_sql "SELECT `vipinsert` FROM `viptable` WHERE `id_account`='"+getcharid(3)+"'",.@HERE_VIPINSERT;
+		
+		if ( .@HERE_VIPINSERT ){
+			
+			mes "^B00400[ Premium Account ]^000000";
+			mes "Olá, "+strcharinfo(0);
+			mes "Obrigado por sua recarga em nosso servidor. Sua conta premium está atíva, bom jogo!";
+			query_sql "UPDATE `viptable` SET `vipinsert`='0' WHERE `id_account` ='"+getcharid(3)+"'";
+			atcommand "@adjgmlvl "+$@LevelPremium+" "+strcharinfo(0);
+			close2;
+			
+		}
+		
+	query_sql "SELECT `minutos_vip` FROM `viptable` WHERE `id_account`='"+getcharid(3)+"'", @MIN;
+	if ( @MIN ){
+		callfunc ("updateStatus",1);
+		if ( (@MIN/24/60) < 1){
+			set .@MOSTRE, @MIN;
+			dispbottom "Você só tem ["+.@MOSTRE+"] "+(.@MOSTRE < 2 ? "minuto":"minutos")+" Premium!";
+		}
+		else {
+			set .@MOSTRE, (@MIN/24/60);
+			dispbottom "Você tem ["+.@MOSTRE+"] "+(.@MOSTRE < 2 ? "dia":"dias")+" Premium!";
+			}
+			
+	}
+	end;
+	
+	// DESLOGOU --
+	OnPCLogoutEvent:
+	query_sql "SELECT `minutos_vip` FROM `viptable` WHERE `id_account`='"+getcharid(3)+"'", @MIN;
+	if ( @MIN ){
+		callfunc ("updateStatus",0);
+	}
+	end;
+
+}
+ 
+ 
+prontera,160,215,3	script	[ Premium Account ]	712,{
+	
+	function EndProcess { if( getarg(0) == "fim" || getarg(0) == "sair" || getarg(0) == "end" ){ close; } return; }
+	
+	OnReturnMenu:
+	mes .npcName$;
+		if ( getgmlevel() < .LevelGM && !.ActiveBuyDay ){
+			mes "Realize uma doação! Nos ajudará a manter o servidor!";
+			mes " ";
+			mes "Informações: www.seuwebsite.com/doacoes";
+			close;
+		}
+	mes "Oii. ~! Veio me procurar por que está interessado no Vip?";
+	mes "Dê uma olhada sem compromisso.";
+	next;
+	switch(select((getgmlevel() >= .LevelGM ? "^B00400[GM]^000000 Adicionar VIP":""),
+				  (getgmlevel() >= .LevelGM ? "^B00400[GM]^000000 Retirar VIP":""),
+				  (getgmlevel() >= .LevelGM ? "^B00400[GM]^000000 Checar Conta":""),
+				  (!.ActiveBuyDay ? "":"- Comprar VIP"),
+				  (getgmlevel() >= 1 ? "- Informações VIP":""),"- Cancelar")){
+					  
+	
+	// ADD VIP
+	case 1:	
+		OnReturnMenu2:
+		mes .npcName$;
+		mes "Por favor, informe o usuário:";
+		next;
+		input .@USUARIO_FOR_VIP$;
+		EndProcess(.@USUARIO_FOR_VIP$);
+		query_sql "SELECT `account_id` FROM `login` WHERE `userid`='"+.@USUARIO_FOR_VIP$+"'",.@HERE_ACCOUNT_ID;
+		if (!getarraysize(.@HERE_ACCOUNT_ID)){ goto OnReturnMenu2; }
+		next;
+		mes .npcName$;
+		mes "Por favor, informe a quantidade de dias VIP:";
+		next;
+		input .@QUANTY_VIP_IN_DAYS;
+		if ( !.@QUANTY_VIP_IN_DAYS ){ goto OnReturnMenu; }
+		next;
+		mes .npcName$;
+		mes "Tem certeza que deseja adicionar ["+.@QUANTY_VIP_IN_DAYS+"] "+(.@QUANTY_VIP_IN_DAYS < 2 ? "dia":"dias")+" premium?";
+		if(select("- Cancelar","- Adicionar") == 1){ close; }
+		close2;
+			message strcharinfo(0), "[ Account Premium Insertted ]";
+			query_sql "SELECT `account_id` FROM `login` WHERE `userid`='"+.@USUARIO_FOR_VIP$+"'",.@HERE_ACCOUNT_ID;
+			query_sql "SELECT `char_id` FROM `char` WHERE `account_id`='"+.@HERE_ACCOUNT_ID+"'",.@HERE_CHAR_ID;
+			query_sql "SELECT `name` FROM `char` WHERE `char_id`='"+.@HERE_CHAR_ID+"'",.@HERE_CHAR_NAME$;
+			set @ADC_VIP_IN_MINUTES, (1440*.@QUANTY_VIP_IN_DAYS);
+			query_sql "SELECT `id_account` FROM `viptable` WHERE `id_account`='"+.@HERE_ACCOUNT_ID+"'",@HERE_CONFERE_ID;
+	
+	if (@HERE_CONFERE_ID == 0) 
+	{
+		query_sql "INSERT INTO `viptable` ( `id_account`, `login`, `char_name`, `minutos_vip`, `online`, `vipinsert`) VALUES ( '"+.@HERE_ACCOUNT_ID+"',  '"+.@USUARIO_FOR_VIP$+"',  '"+.@HERE_CHAR_NAME$+"',  '"+@ADC_VIP_IN_MINUTES+"', '0', '1')"; 
+		query_sql "UPDATE `login` SET `level`='"+$@LevelPremium+"' WHERE `account_id`='"+.@HERE_ACCOUNT_ID+"'";
+		goto OnAttach;
+		end;
+	}
+
+	query_sql "UPDATE `viptable` SET `minutos_vip`= minutos_vip +'"+@ADC_VIP_IN_MINUTES+"' WHERE `id_account`='"+.@HERE_ACCOUNT_ID+"'";
+	query_sql "UPDATE `login` SET `level`='"+$@LevelPremium+"' WHERE `account_id`='"+.@HERE_ACCOUNT_ID+"'";
+
+	OnAttach:
+		if (isloggedin(.@HERE_ACCOUNT_ID)){
+		attachrid(.@HERE_ACCOUNT_ID);
+		query_sql "UPDATE `viptable` SET `vipinsert`='0' WHERE `id_account`='"+.@HERE_ACCOUNT_ID+"'";
+		callfunc ("updateStatus",1);
+		atcommand "@adjgmlvl "+$@LevelPremium+" "+strcharinfo(0);
+		message strcharinfo(0), "[ Account Premium Begun ]";
+		dispbottom "Sua conta premium acaba de ser iniciada. Obrigado, "+strcharinfo(0);
+		}
+		detachrid;
+		end;
+		
+	// REMOVE VIP	
+	case 2:
+		OnReturnMenu3:
+		mes .npcName$;
+		mes "Por favor, informe o usuário:";
+		next;
+		input .@USUARIO_RET_VIP$;
+		EndProcess(.@USUARIO_RET_VIP$);
+		query_sql "SELECT `id_account` FROM `viptable` WHERE `login`='"+.@USUARIO_RET_VIP$+"'",.@HERE_ACCOUNT_ID_RET;
+		if(!getarraysize(.@HERE_ACCOUNT_ID_RET)){ 
+		
+				mes .npcName$;
+				mes "Esta conta não possui VIP!";
+				close;
+		}
+		query_sql "SELECT `minutos_vip` FROM `viptable` WHERE `id_account`='"+.@HERE_ACCOUNT_ID_RET+"'", .@minutes;
+		mes .npcName$;
+		mes "Esta conta possui ^B00400["+.@minutes+"]^000000 minutos!";
+		mes "Como proceder?";
+		next;
+		switch(select("- Retirar alguns minutos","- Retirar todos os minutos")){
+			
+			case 1:
+				mes .npcName$;
+				mes "Quantos minutos você deseja retirar dessa conta?";
+				next;
+				input .@remove_minutes;
+				mes .npcName$;
+				mes "Você está ciênte disto?";
+				if(select("- Não:- Sim") == 1 ){ close; }
+				next;
+				query_sql "UPDATE `viptable` SET `minutos_vip` = `minutos_vip`-"+.@remove_minutes+" WHERE `id_account`="+.@HERE_ACCOUNT_ID_RET;
+				mes .npcName$;
+				mes "Foram retirados ["+.@remove_minutes+"] minutos VIP da conta ["+.@USUARIO_RET_VIP$+"]";
+				close2;
+				if (isloggedin(.@HERE_ACCOUNT_ID_RET)){
+					attachrid(.@HERE_ACCOUNT_ID_RET);
+	
+					if ( .@remove_minutes >= .@minutes ){ goto RetAllMinutes; }
+			
+				}
+				detachrid;
+				break;
+		
+			case 2:
+				mes .npcName$;
+				mes "Você está ciênte disto?";
+				if(select("- Não:- Sim") == 1 ){ close; }
+				next;
+				query_sql "UPDATE `login` SET `level`='"+$@LevelAccountSimple+"' WHERE `account_id`='"+.@HERE_ACCOUNT_ID_RET+"'";
+				query_sql "DELETE from viptable where id_account='"+.@HERE_ACCOUNT_ID_RET+"'";
+				mes .npcName$;
+				mes "Foram retirados ["+.@minutes+"] minutos VIP da conta ["+.@USUARIO_RET_VIP$+"]";
+				close2;
+				RetAllMinutes:
+				if (isloggedin(.@HERE_ACCOUNT_ID_RET)){
+					attachrid(.@HERE_ACCOUNT_ID_RET);
+					atcommand "@adjgmlvl "+$@LevelAccountSimple+" "+strcharinfo(0);
+					message strcharinfo(0), "[ Account Premium Finished ]";
+					dispbottom "Sua conta premium acaba de ser finalizada! Faça uma nova recarga.";
+				}
+				detachrid;
+				break;
+				
+			case 3:
+				close;
+		}
+		end;
+		
+		
+	// CHECK ACCOUNT VIP
+	case 3:	
+		OnReturnMenu4:
+		mes .npcName$;
+		mes "Por favor, informe o usário:";
+		next;
+		input .@LOGIN_CHECK$;
+		EndProcess(.@LOGIN_CHECK$);
+		query_sql "SELECT `id_account` FROM `viptable` WHERE `login`='"+.@LOGIN_CHECK$+"'",.@HERE_ACCOUNT_ID;
+		if (!getarraysize(.@HERE_ACCOUNT_ID)){ 
+				mes .npcName$;
+				mes "Conta inexistente no Sistema VIP.";
+				next;
+				goto OnReturnMenu4; 
+		}
+		query_sql "SELECT id_account,minutos_vip FROM `viptable` WHERE `login`='"+.@LOGIN_CHECK$+"'",.@HERE_ACCOUNT_CHECK , .@MINUTOS;		
+		query_sql "SELECT `name` FROM `char` WHERE `account_id`='"+.@HERE_ACCOUNT_CHECK+"'",.@CHAR_NAME_CHECK$;
+		mes .npcName$;
+		mes "-> Informações de ^B00400["+.@LOGIN_CHECK$+"]^000000";
+		mes " ";
+		mes "Account ID: "+.@HERE_ACCOUNT_CHECK;
+		if ( .@MINUTOS < 1440){ mes "Minutos: "+.@MINUTOS; }
+		else if ( .@MINUTOS >= 1440){ mes "Dias: "+(.@MINUTOS/24/60); }
+		if (.@CHAR_NAME_CHECK$ == ""){
+			mes "Nenhum personagem encontrado.";
+			close;
+		}
+		mes "-- Personagens Encontrados --";
+		for ( set .@x,0; .@x < getarraysize(.@CHAR_NAME_CHECK$); set .@x, .@x+1 ){
+			mes "[^B00400"+(.@x+1)+"^000000] -> [^B00400"+.@CHAR_NAME_CHECK$[.@x]+"^000000]";
+		}
+		close;
+	
+	// DAYS VIP BUYING
+	case 4:
+			setarray .Dias[0], 1, 15, 30;	// <- DIAS POSSÍVEIS PARA SE COMPRAR VIP. Ex: 1, 2, 3, 4, 5, ou seja, posso comprar até 5 dias VIP.
+			mes .npcName$;
+			mes "Está querendo ser mais do que um simples jogador comum? Posso te ajudar. Por alguns reais eu posso te dá comandos, funções exlusívas e muito mais.";
+			mes "^0000FF1 dia VIP ^000000 ~ ^FF0000R$ "+(.Qpointscash/1000)+",00^000000";
+			next;
+			mes .npcName$;
+			mes "Seu saldo: ^FF0000R$ "+(#CASHPOINTS/1000)+",00^000000.";
+			mes " ";
+			mes "Se você não quer desembolsar muito dinheiro, tenho "+getarraysize(.Dias)+" opções para você. Escolha a opção que cabe em seu bolso!";
+				for (set .@i, 0; .@i < getarraysize(.Dias); set .@i, .@i + 1){
+					set .@menu$, .@menu$ + "^FF0000"+.Dias[.@i]+"^000000 "+(.Dias[.@i] < 2 ? "dia":"dias")+" vip ~ ^FF0000R$ "+(.Dias[.@i]*.Qpointscash/.Qpointscash)+",00^000000";
+					set .@menu$, .@menu$ + ":";	
+				}
+				set .@menu, select (.@menu$);
+				if(#CASHPOINTS < (.Qpointscash*.Dias[.@menu-1])){
+					
+					next;
+					mes .npcName$;
+					mes "Desculpe, senhor"+(Sex? "":"a")+". Seu saldo é insuficiente para realizar a compra.";
+					mes " ";
+					mes "Você precisa de ^FF0000R$"+(.Dias[.@menu-1]*.Qpointscash)/.Qpointscash+",00^000000.";
+					close;
+					
+				}
+				next;
+				mes .npcName$;
+				mes "Hum. Tem certeza que está fazendo a coisa certa? Não há reembolso.";
+				next;
+				if(select("- Comprar","- Cancelar") == 2){ close; }
+				
+					query_sql "SELECT `userid` FROM `login` WHERE `account_id`='"+getcharid(3)+"'",.@USUARIO$;
+					query_sql "SELECT `char_id` FROM `char` WHERE `account_id`='"+getcharid(3)+"'",.@HERE_CHAR_ID;
+					query_sql "SELECT `name` FROM `char` WHERE `char_id`='"+.@HERE_CHAR_ID+"'",.@HERE_CHAR_NAME$;
+					set @ADC_VIP_IN_MINUTES, (1440*.Dias[.@menu-1]);
+					query_sql "SELECT `id_account` FROM `viptable` WHERE `id_account`='"+getcharid(3)+"'",@HERE_CONFERE_ID;
+					set #CASHPOINTS, #CASHPOINTS-(.Qpointscash*.Dias[.@menu-1]);
+	
+	if (@HERE_CONFERE_ID == 0) 
+	{
+		query_sql "INSERT INTO `viptable` ( `id_account`, `login`, `char_name`, `minutos_vip`, `online`, `vipinsert`) VALUES ( '"+getcharid(3)+"',  '"+.@USUARIO$+"',  '"+.@HERE_CHAR_NAME$+"',  '"+@ADC_VIP_IN_MINUTES+"', '0', '0')"; 
+		query_sql "UPDATE `login` SET `level`='"+$@LevelPremium+"' WHERE `account_id`='"+getcharid(3)+"'";
+		close2;
+		goto OnAttach2;
+		end;
+	}
+
+	query_sql "UPDATE `viptable` SET `minutos_vip`= minutos_vip +'"+@ADC_VIP_IN_MINUTES+"' WHERE `id_account`='"+getcharid(3)+"'";
+	query_sql "UPDATE `login` SET `level`='"+$@LevelPremium+"' WHERE `account_id`='"+getcharid(3)+"'";
+	close2;
+	OnAttach2:
+		if (isloggedin(getcharid(3))){
+			attachrid(getcharid(3));
+			callfunc ("updateStatus",1);
+			atcommand "@adjgmlvl "+$@LevelPremium+" "+strcharinfo(0);
+			message strcharinfo(0), "[ Account Premium Begun ]";
+			dispbottom "Sua conta premium acaba de ser iniciada. Obrigado, "+strcharinfo(0);
+		}
+		detachrid;
+		end;
+	
+	case 5:
+	
+		query_sql "SELECT userid FROM login WHERE account_id = '"+getcharid(3)+"'", .@LOGIN_ch$;
+		query_sql "SELECT minutos_vip FROM `viptable` WHERE `login`='"+.@LOGIN_ch$+"'", .@MINUTOS;		
+		mes .npcName$;
+		mes "Login: "+.@LOGIN_ch$;
+		mes "Status: "+(.@MINUTOS ? "^228B22VIP^000000":"^B00400Normal^000000");
+		mes "Account ID: "+getcharid(3);
+		if ( .@MINUTOS < 1440){ 
+			mes "Minutos restantes: "+.@MINUTOS;
+		} else {
+			if ( .@MINUTOS >= 1440){
+				mes "Dias restantes: "+(.@MINUTOS/24/60);
+			}
+		}
+		close;
+		
+	case 6:
+		close;
+	
+	}
+
+	OnInit:
+	// ==================================== CONFIG ====================================
+	// -> Leia com atenção e configure ao seu gosto.
+	set .npcName$, "^B00400[ Premium Account ]^000000";	// <- Nome da Janela de Conversação do NPC.
+	set $@LevelPremium, 1; // <- Level da Account Premium
+	set $@LevelAccountSimple, 0; // <- Level do Account Common
+	set .LevelGM, 99;	// <- Level mínimo de GM para acessar ao menu
+	set .ActiveBuyDay, 1;	// <- Permitir compra de dias vip? 0 = Não / 1 = Sim
+	set .Qpointscash, 1000;	// <- Quantidade de pontos necessários para comprar 1 dia vip.
+	// ===================================== // =======================================
+	// -- Tabela VIP
+	query_sql ("CREATE TABLE IF NOT EXISTS `viptable` (`id_account` int( 11 ) unsigned NOT NULL default '0',`login` varchar( 255 ) NOT NULL default '',`char_name` varchar( 100 ) NOT NULL default '',`minutos_vip` int( 11 ) unsigned NOT NULL default '0',`online` tinyint(2) NOT NULL default '0',`vipinsert` tinyint(2) NOT NULL default '0',PRIMARY KEY ( `id_account` )) ENGINE=MyISAM;");
+	initnpctimer;
+	end;
+	
+	
+	// COUNT, REMOVE & DELETE MINUTES VIP.
+	OnTimer60000:
+	stopnpctimer;
+	query_sql "UPDATE `viptable` SET `minutos_vip`=`minutos_vip`-1 WHERE `minutos_vip`>'0' AND online ='1'";
+	sleep2 100;
+		set .@query, query_sql ("SELECT `id_account` FROM `viptable` WHERE `minutos_vip`<='0'",.@HERE_ACCOUNT_REMOVE_VIP);
+		if (getarraysize(.@query)){
+			// REMOVE LEVEL VIP
+			query_sql "UPDATE `login` SET `level`='"+$@LevelAccountSimple+"' WHERE `account_id`='"+.@HERE_ACCOUNT_REMOVE_VIP+"'"; 
+		}
+	// DELETE ACCOUNT WHEN MINUTES <= 0	
+	query_sql "DELETE from viptable WHERE minutos_vip<=0";
+	initnpctimer;
+		if ( !getarraysize(.@query) ){ end; }
+
+		for( set .@c,0; .@c < getarraysize(.@HERE_ACCOUNT_REMOVE_VIP); set .@c, .@c+1 ){
+		if (isloggedin(.@HERE_ACCOUNT_REMOVE_VIP[.@c])){
+		attachrid(.@HERE_ACCOUNT_REMOVE_VIP[.@c]);
+		
+		atcommand "@adjgmlvl "+$@LevelAccountSimple+" "+strcharinfo(0);
+		message strcharinfo(0), "[ Account Premium Finished ]";
+		dispbottom "Sua conta premium acaba de ser finalizada! Faça uma nova recarga.";
+		}
+	}
+	detachrid;
+}
