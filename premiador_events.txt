@@ -1,0 +1,219 @@
+// MODIFICADO POR MIKÉIAS
+
+
+/*
+
+-- NÃO PRECISA UPAR ESTA TABELA, ELA É ADICIONADA AUTOMÁTICAMENTE PELO SCRIPT! :)
+
+CREATE TABLE IF NOT EXISTS `premiador` (
+  `posicao` int(11) unsigned NOT NULL default '0',
+  `ativado` int(11) unsigned NOT NULL default '0',
+  `iddaconta` int(11) unsigned NOT NULL default '0',
+  `nick` varchar(255) NOT NULL default '',
+  `premio` int(11) unsigned NOT NULL default '0',
+  `quantidade` int(11) unsigned NOT NULL default '0',
+  `motivo` varchar(255) NOT NULL default '',
+  `staff` varchar(255) NOT NULL default '',
+  PRIMARY KEY  (`posicao`)
+) ENGINE=MYISAM;
+
+*/
+
+
+prontera,168,213,3	script	[ Premiadora ]	959,{
+
+	set .@premiador$, "^1E90FF[ Premiadora ]^000000";
+	
+	query_sql "SELECT ativado FROM premiador WHERE iddaconta = "+getcharid(3), .@activate;
+	mes .@premiador$;
+	mes "Olá viajante! ~ Eu entrego recompensas à mando da Staff! Veja se você foi prêmiado, quem sabe é seu dia de sorte! HAHA ~";
+	next;
+	switch(select("- Resgatar Premiação ^B00400["+getarraysize(.@activate)+"]^000000",(getgmlevel() >= 60 ? "- Premiar Jogador.":""),( getgmlevel() == 99 ? "- Avaliar Premiações ^B00400["+$verif+"]^000000":""),"- Cancelar.")){
+	
+	
+	case 1:
+		Repetir:
+		query_sql "SELECT `posicao`, `ativado`, `premio`, `quantidade` FROM `premiador` WHERE `iddaconta` = '"+getcharid(3)+"' ORDER BY `posicao` DESC",.@Position,.@Premiado,.@Premioid,.@Quant;
+		
+		if(!.@Premiado){
+				mes .@premiador$;
+				mes "Desculpe. Você não tem nenhuma recompensa para ser retirada.";
+				mes " ";
+				mes " ";
+				mes " ";
+				mes "^B8860B~ Participe dos Eventos!^000000";
+				close;
+			}
+			
+		if(.@Premiado == 1){
+			Aprovation:
+			for(set .@i,0; .@i < getarraysize(.@Position); set .@i,.@i + 1){
+			mes .@premiador$;
+			mes "Prêmio: "+getitemname(.@Premioid[.@i])+".";
+			mes "Quantidade: "+.@Quant[.@i]+".";
+			mes "Status: ^FF0000Aguardando aprovação^000000.";
+			next;
+			}
+			
+			close;
+			
+			}
+			
+			
+		if(.@Premiado == 2){
+			Retirando:
+			query_sql "SELECT `posicao`, `ativado`, `premio`, `quantidade` FROM `premiador` WHERE `iddaconta` = '"+getcharid(3)+"'",.@Position,.@Premiado,.@Premioid,.@Quant;
+			mes .@premiador$;
+			mes "Prêmio: "+getitemname(.@Premioid)+".";
+			mes "Quantidade: "+.@Quant+".";
+			mes "Status: ^008000Aprovado^000000.";
+			mes " ";
+			mes "Você tem um prêmio pendente, deseja retirá-lo agora?";
+			if(select("- Sim.","- Não.")==2)close;
+			next;
+				callfunc "verifpeso";	// VERIFICA PARA SABER SE O PERSONAGEM ESTÁ ACIMA DO PESO
+				getitem .@Premioid,.@Quant;
+				query_sql "DELETE FROM `premiador` WHERE `iddaconta` = '"+getcharid(3)+"' AND `posicao` = '"+.@Position+"'";
+				mes .@premiador$;
+				mes "Seu prêmio foi retirado com sucesso!";
+				next;
+				set .@Premiado,0;
+				goto Repetir;
+				}
+				else{
+				next;
+				mes .@premiador$;
+				mes "Você não tem nenhum prêmio para retirar.";
+				close;
+				}
+	
+	case 2:
+			mes .@premiador$;
+			mes "[GM], estou aqui para servi-lo!";
+			mes "Informe o nickname do personagem:";
+			next;
+			input .@nickname$;
+			query_sql "SELECT `account_id` FROM `char` WHERE `name`='"+.@nickname$+"'", @aid;
+	
+			mes .@premiador$;	
+			if ( !@aid ){
+				mes "Personagem inexistente no banco de dados ^B8860B(db)^000000!";
+				close;
+			}
+
+			mes "Informe a ID do prêmio:";
+			mes "^0080FFCaixa de Bônus: 30139^000000";
+			next;
+			input .@idprime;
+	
+			mes .@premiador$;	
+			if ( .@idprime < 501 ){ 
+				mes "Item inexistente no Banco de Dados!";
+				close;
+			}
+			mes "Informe a quantidade do item:";
+			next;
+			input .@quant,1,29999;
+	
+			mes .@premiador$;
+			mes "Por qual motivo você está premiando este jogador?";
+			next;
+			input .@motivo$;
+	
+			mes .@premiador$;
+			mes "Nickname: ^0000FF"+.@nickname$+"^000000.";
+			mes "Prêmio: ^0000FF"+getitemname(.@idprime)+"^000000.";
+			mes "Quantidade: ^0000FF"+.@quant+"^000000.";
+			mes "Motivo: ^0000FF"+.@motivo$+"^000000.";
+			if(select("- Confimar.","- Abortar.") == 2){ close; }
+			set $aidpremiador,$aidpremiador+1;
+			query_sql "INSERT INTO `premiador` VALUES( '"+$aidpremiador+"', '1', '"+@aid+"' , '"+.@nickname$+"' , '"+.@idprime+"' , '"+.@quant+"' , '"+.@motivo$+"' , '"+strcharinfo(0)+"')";
+			set $verif,$verif+1;
+			next;
+			mes .@premiador$;
+			mes "Pronto! A premiação foi registrada. Em breve será avaliada e possivelmente entregue ao destinatário.";
+			close;
+	
+	
+	case 3:
+	
+			Premiando:
+			mes .@premiador$;
+			if ( !$verif ){
+				
+				mes "Desculpe. Não há nenhuma validação para ser avaliada.";
+				close;
+				
+			}
+			
+			query_sql "SELECT `posicao`, `iddaconta`,`nick`,`premio`,`quantidade`,`motivo`,`staff` FROM `premiador` WHERE `ativado` = '1'",@Posicao,@iddaconta,@nick$,@premio,@quantidade,@motivo$,@staff$;
+			mes "Avaliações: ^0000FF"+$verif+"^000000";
+			mes " ";
+			mes "Nickname: ^F08080"+@nick$+"^000000";
+			mes "Prêmio: ^F08080"+getitemname(@premio)+"^000000";
+			mes "Quantidade: ^F08080"+@quantidade+"^000000";
+			mes "Motivo: ^F08080"+@motivo$+"^000000";
+			mes "GM: ^F08080"+@staff$+"^000000";
+			next;
+			switch(select("- Validar.","- Alterar prêmiação.","- Invalidar.","- Verificar depois.")){
+				
+			case 1:
+				mes .@premiador$;
+				Aceitar:
+				query_sql "UPDATE `premiador` SET `ativado` = '2', `premio` = '"+@premio+"', `quantidade` = '"+@quantidade+"' WHERE `iddaconta` = '"+@iddaconta+"' AND `posicao` = '"+@Posicao+"'";
+				set $verif,$verif-1;
+				
+				close2;
+				attachrid(@iddaconta);
+				message strcharinfo(0), "Sua premiação foi validada! Resgate-a no Premiador.";
+				detachrid;
+				end; 
+				
+			case 2:
+				mes .@premiador$;
+				Novovalor:
+				mes "Para qual prêmio deseja Alterar? (ID)";
+				mes "^0080FFCaixa de Bônus: 30139^000000";
+				input @NovoPremio;
+				next;
+				mes .@premiador$;
+				
+				if ( @NovoPremio < 501){
+						mes "Item inexistente no Banco de Dados.";
+						close;
+					}
+					
+				mes "O novo prêmio será ^0080FF["+getitemname(@NovoPremio)+"]^000000";
+				mes "Qual será a quantidade?";
+				input @NovaQuant,1,29999;
+				next;
+				mes .@premiador$;
+				mes "A nova quantidade será de ^0080FF["+@NovaQuant+"]^000000.";
+				mes "Você tem certeza disso?";
+				if(select("- Tenho certeza.","- Cancelar.") == 2 ) { close; }
+					set @premio,@NovoPremio;
+					set @quantidade,@NovaQuant;
+					goto Aceitar;
+					break;
+
+			case 3:
+				set $verif,$verif-1;
+				query_sql "DELETE FROM `premiador` WHERE `iddaconta` = '"+@iddaconta+"' AND `posicao` = '"+@Posicao+"'";
+				next;
+				goto Premiando;
+				break;
+
+			case 4: close;
+				
+			}
+	
+	
+	case 4: close;
+	
+	
+	}
+	
+	OnInit:
+	query_sql ("CREATE TABLE IF NOT EXISTS `premiador` (`posicao` int(11) unsigned NOT NULL default '0', `ativado` int(11) unsigned NOT NULL default '0', `iddaconta` int(11) unsigned NOT NULL default '0', `nick` varchar(255) NOT NULL default '', `premio` int(11) unsigned NOT NULL default '0', `quantidade` int(11) unsigned NOT NULL default '0', `motivo` varchar(255) NOT NULL default '', `staff` varchar(255) NOT NULL default '', PRIMARY KEY  (`posicao`) ) ENGINE=MYISAM;");
+	end;
+}
