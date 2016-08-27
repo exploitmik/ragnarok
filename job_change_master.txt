@@ -1,0 +1,154 @@
+/*
+
+	 ---------------------------------------------------------------
+	|                ___                       ___     				|
+	|               /__/\        ___          /__/|    				|
+	|              |  |::\      /  /\        |  |:|    				|
+	|              |  |:|:\    /  /:/        |  |:|    				|
+	|            __|__|:|\:\  /__/::\      __|  |:|    				|
+	|           /__/::::| \:\ \__\/\:\__  /__/\_|:|____				|
+	|           \  \:\~~\__\/    \  \:\/\ \  \:\/:::::/				|
+	|            \  \:\           \__\::/  \  \::/~~~~ 				|
+	|             \  \:\          /__/:/    \  \:\     				|
+	|              \  \:\         \__\/      \  \:\    				|
+	|               \__\/                     \__\/   				|
+	|																|
+	---------------------------------------------------------------
+	= Job Change Master for servers full PvP/WoE
+	---------------------------------------------------------------
+	= Version: 1.0
+	---------------------------------------------------------------
+	= Developed by Mik 
+	---------------------------------------------------------------
+	= Compatível: eAthena/brAthena
+	---------------------------------------------------------------
+	= Descrição: A primeira vez que você usa a mestra, não requer
+	ticket. Após a primeira transformação, caso queira mudar de classe
+	será necessário ter uma certa quantidade de um item 'X' definido
+	pelo administrador. Existe uma limitação para a quantidade de vezes
+	em que um personagem poderá alterar sua classe.
+	
+	OBS: JOGADORES VIP ESTÃO ISENTOS DAS INFORMAÇÕES A CIMA.
+             
+*/
+
+-	script	[ Job Change Master ]::job_change_master	-1,{
+
+	// -> CONFIGURAÇÕES ---
+	// --------------------
+	setarray $@Class[0], 4008,4009,4010,4011,4012,4013,4015,4016,4017,4018,4019,4020,4046,4047,4049,24,25,23;	// -> Classes
+	// --------------------
+	set .blvl, 999;	// -> Base Level máx.
+	// --------------------
+	set .jlvl, 250; // -> Job Level máx.
+	// --------------------
+	set .allskills, 1;	// -> Conceder ao personagem todas as habilidades de sua classe? ( 1: Sim | 0: Não )
+	// --------------------
+	set .platinium, 1;	// -> Conceder ao personagem todas as habilidades de platina de sua classe? ( 1: Sim | 0: Não )
+	// --------------------
+	set .negociante, 1;	// -> Conceder ao personagem os itens de aluguel? ( 1: Sim | 0: Não )
+	// --------------------
+	set .transformlimit, 3;	// -> Quantas vezes um personagem não-vip pode mudar de classe?
+	// --------------------
+	setarray .@tickettransform[0], 607, 1;	// -> ID do item requerido para a transformação e sua quantidade.
+	// --------------------
+	set .@jobchangename$, "^1E90FF"+strnpcinfo(1)+"^000000";	// Nome do NPC
+	// --------------------
+	
+	
+		if ( transformcount == .transformlimit && !getgmlevel() ){
+			mes .@jobchangename$;
+			mes "Você atingiu o limite máximo de vezes em que pode transformar seu personagem em outra classe.";
+			close;
+		}
+	
+	
+	mes .@jobchangename$;
+	mes "Olá. Posso lhe oferecer algumas opções de classes. Está interessado?";
+	mes " ";
+	next;
+			
+			// SE NÃO-VIP E JÁ HOUVE A PRIMEIRA TRANSFORMAÇÃO, VERIFICA A QUANTIDADE DO ITEM REQUERIDO
+				if ( !getgmlevel() && transformcount ){
+					if ( countitem(.@tickettransform[0]) < .@tickettransform[1] ){
+						mes .@jobchangename$;
+						mes "Requerimento depois da primeira transformação: "+.@tickettransform[1]+"x "+getitemname(.@tickettransform[0]);
+						close;
+					}
+				}
+				
+			for (set .@i, 0; .@i < getarraysize($@Class); set .@i, .@i + 1){
+				set .@menu$, .@menu$ + "~ "+Jobname($@Class[.@i]);
+				set .@menu$, .@menu$ + ":";	
+			}
+			set .@menu, select (.@menu$);
+			set .@menu, .@menu-1;
+			mes .@jobchangename$;
+			mes "Essa é realmente a classe que você deseja se tornar?";
+			progressbar "green",1;
+			next;
+			if(select("~ Transformar em "+Jobname($@Class[.@menu])+":~ Cancelar") == 2 ){ close; }
+		
+			mes .@jobchangename$;
+			mes "Parabéns! Agora você é "+(Sex? "um":"uma")+" ^B00400"+Jobname($@Class[.@menu])+"^000000.";
+			jobchange $@Class[.@menu];
+			set BaseLevel, BaseLevel+.blvl;
+			set JobLevel, JobLevel+.jlvl;
+			if ( .allskills ){ atcommand "@allskill"; }
+			set transformcount, transformcount + 1;
+			if ( !getgmlevel() ){ delitem .@tickettransform[0], .@tickettransform[1]; }
+			if ( .platinium ){ callfunc "platiniumskillsfunc"; }
+			if ( .negociante ){ callfunc "negociante"; }
+			close;
+
+}
+
+function	script	platiniumskillsfunc	{
+
+	skill 142,1,0;
+	
+	switch(BaseClass) {
+		case 0: if (Class !=23) skill 143,1,0; break;
+		case 1: skill 144,1,0; skill 145,1,0; skill 146,1,0; break;
+		case 2: skill 157,1,0; break;
+		case 3: skill 147,1,0; skill 148,1,0; break;
+		case 4: skill 156,1,0; break;
+		case 5: skill 153,1,0; skill 154,1,0; skill 155,1,0; break;
+		case 6: skill 149,1,0; skill 150,1,0; skill 151,1,0; skill 152,1,0; break;
+		default: break;
+	}
+	
+	switch(roclass(eaclass()&EAJ_UPPERMASK)) {
+		case 7: skill 1001,1,0; break;
+		case 8: skill 1014,1,0; break;
+		case 9: skill 1006,1,0; break;
+		case 10: skill 1012,1,0; skill 1013,1,0; break;
+		case 11: skill 1009,1,0; break;
+		case 12: skill 1003,1,0; skill 1004,1,0; break;
+		case 14: skill 1002,1,0; break;
+		case 15: skill 1015,1,0; skill 1016,1,0; break;
+		case 16: skill 1007,1,0; skill 1008,1,0; skill 1017,1,0; skill 1018,1,0; skill 1019,1,0; break;
+		case 17: skill 1005,1,0; break;
+		case 18: skill 238,1,0; break;
+		case 19: skill 1010,1,0; break;
+		case 20: skill 1011,1,0; break;
+		default: break; 
+	}
+		
+	return;
+}
+
+function	script	negociante	{
+	if((BaseClass == Job_Merchant || BaseJob == Job_SuperNovice) && !checkcart()){ setcart; }
+	if(BaseJob != Job_Archer && BaseClass == Job_Archer && !checkfalcon()){ setfalcon; } 
+	if (BaseJob != Job_Swordman && BaseClass == Job_Swordman && !checkriding()){ setriding; }
+	return;
+}
+
+// DUPLICATAS
+prontera,156,216,4	duplicate(job_change_master)	[ Job Change Master ]#1	123
+morocc,164,98,4	duplicate(job_change_master)	[ Job Change Master ]#2	123
+izlude,133,144,4	duplicate(job_change_master)	[ Job Change Master ]#3	123
+gonryun,161,124,4	duplicate(job_change_master)	[ Job Change Master ]#4	123
+moscovia,228,198,4	duplicate(job_change_master)	[ Job Change Master ]#5	123
+payon,168,232,4	duplicate(job_change_master)	[ Job Change Master ]#6	123
