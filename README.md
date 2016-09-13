@@ -1,2 +1,1 @@
-# ragnarok
-[NPC] Scripts of Ragnarok
+# Arquivos relacionados à Ragnarök
