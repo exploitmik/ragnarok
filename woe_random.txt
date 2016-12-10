@@ -1,0 +1,230 @@
+		function	script	mes2	{
+			mes $@woenamenpc$;
+			mes getarg(0);
+			return;
+		}	
+
+		// VERIFICA O PESO DO PERSONAGEM
+		function	script	verifpeso	{
+
+			set .@max,100;
+			getinventorylist;
+			if(@inventorylist_count >= .@max) return 1;
+			set @peso, (Weight * .@max)/MaxWeight;
+			if(@peso >= 90) return 1;
+			return 0;
+		}	
+
+		prontera,148,214,5	script	[ Senhora da Guerra ]	469,{
+		set $@woenamenpc$, "^B00400[ Lady of War ]^000000";
+		if(!agitcheck2() && !agitcheck()) set .@stats_gde$, "^FF0000Parada^000000"; else set .@stats_gde$, "^228B22Rolando^000000";
+
+		back_npc:
+		callfunc("mes2","Olá, "+strcharinfo(0)+"! Eu sei que estou velha, mas ainda posso lhe servir em algumas coisas. Estive em muitas Guerras do Emperium!");
+		mes " ";
+		mes "Guerra do Emperium: "+.@stats_gde$;
+		next;
+		switch(select((!agitcheck() && !agitcheck2() ? "":"- Entrar no Castelo."),
+			"- Horários.",
+			"- Resgatar Premiação ^B00400["+( $win_woe$ == strcharinfo(0) ? "1":"0")+"]^000000",
+			"- Cancelar.")){
+		
+			// teleport for the sorted drawn
+			case 1:
+				if ( !$castle_sorted ){
+					callfunc("mes2","Sorteio do castelo em progresso...");
+					close;
+				}
+				if( !getcharid(2) ){
+						callfunc("mes2","Você não está em uma Guild!");
+						close;
+				}
+				warp $@maps_woe$[$castle_sorted],$coordenada[($castle_sorted*2)],$coordenada[($castle_sorted*2)+1];
+				close;
+			
+			// schedules
+			case 2:
+				doevent "hour_woe::OnHours";
+				end;
+			
+			// reward
+			case 3:
+					if ( agitcheck() || agitcheck2() ){
+						callfunc("mes2","Neste momento não é possível acessar essa opção. A Guerra do Emperium está atíva!");
+						close;
+					}
+				callfunc("mes2","Recompensa:");
+				setarray .premios, 12103, 12210, 30206, 30139, 7828, 7829, 7773;
+				setarray .quantias, 6, 3, 3, 5, 2, 2, 2;
+				for( set .@i, 0; .@i < getarraysize(.premios); set .@i, .@i + 1) mes "^B00400"+.quantias[.@i]+"x^000000 "+getitemname(.premios[.@i]);
+						
+					if ( !getcharid(2) ){ close; }
+				
+				next;
+				if ( $win_woe$ == strcharinfo(0)) {
+					if ( callfunc("verifpeso") ){
+						callfunc ("mes2","Por favor, verifique seus itens e se seu peso está acima de 90%!");
+						close;
+					}
+					callfunc("mes2","Meus parabéns! Aqui está sua recompensa por esta dura batalha.");
+					set $win_woe$, "";
+					for( set .@i, 0; .@i < getarraysize(.premios); set .@i, .@i + 1) getitem .premios[.@i], .quantias[.@i];
+					announce (Sex? "O":"A")+" líder [ "+strcharinfo(0)+" ] resgatou a recompensa da guild [ "+getguildname(getcharid(2))+" ]",bc_all;
+					close;
+				}
+					goto back_npc;
+					end;
+			
+			// exit	
+			case 4:
+				close;
+		}
+}
+
+function	script	define_input	{
+
+	mes $@woenamenpc$;
+	mes "Por favor, defina a hora de ^B00400"+getarg(0)+"^000000 no formato de 24hrs (0 ~ 23)";
+	next;
+	input .@hour,0,23;
+	return .@hour;
+
+}
+
+-	script	hour_woe	-1,{
+
+	OnHours:
+	setarray $@name_days$[1], "Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado";
+		mes $@woenamenpc$;
+		if ( !($hour_init[0]+$hour_finish[0]) ){
+				mes "Atualmente nenhum horário está configurado!";
+				if ( getgmlevel() < 20 ) close;
+		}
+		mes " ";
+		for ( set .@d, 1; .@d <= getarraysize($day_woe); set .@d, .@d+1){
+			mes $@name_days$[$day_woe[.@d-1]];
+			mes "       ^228B22Início^000000: "+$hour_init[.@d-1]+"h ~ ^B00400Término^000000: "+$hour_finish[.@d-1]+"h";
+		}
+	if ( getgmlevel() < 20 ) close;
+	next;
+	switch(select("Adicionar um novo horário:Resetar todos os horários:Cancelar")){
+	
+		//add
+		case 1:
+			back_npc:
+			callfunc("mes2","Então vai adicionar mais um dia de GdE? Tenha cuidado ao fazer isso!");
+			mes "Por favor, selecione o dia da semana em que iniciará.";
+			for (set .@i, 1; .@i < getarraysize($@name_days$); set .@i, .@i + 1)
+				set .@day_week$, .@day_week$ + "~ "+$@name_days$[.@i] + ":";
+			next;
+			set .@day_week, select (.@day_week$);
+			set .@hour_init, callfunc("define_input","início");
+			set .@hour_finish, callfunc("define_input","término");
+			if ( ( .@hour_init == 23 ? 0:.@hour_finish < .@hour_init) ){
+				callfunc("mes2","O horário de término não pode ser menor do que o de início!");
+				next;
+				goto back_npc;
+				end;
+			}
+			setarray $day_woe[getarraysize($day_woe)], .@day_week;
+			setarray $hour_init[getarraysize($hour_init)], .@hour_init;
+			setarray $hour_finish[getarraysize($hour_finish)], .@hour_finish;
+			message strcharinfo(0), "Horário adicionado: "+$@name_days$[.@day_week]+" das "+.@hour_init+"h às "+.@hour_finish+"h";
+			close;
+			
+		//reset
+		case 2:
+			callfunc("mes2","Senhor"+(Sex? "":"a")+", você está ciente do seu pedido?");
+			next;
+			if(select("Não estou:Tenho certeza") == 1) close;
+			deletearray $day_woe;
+			deletearray $hour_init;
+			deletearray $hour_finish;
+			message strcharinfo(0), "Horários resetados!";
+			close;
+		
+		//exit
+		case 3:
+			close;
+			
+	}
+
+	OnInit:
+	OnMinute46:
+	OnAgitInit:
+	set .@day, gettime(4);
+	set .@hour, gettime(3);
+	set .@minute, gettime(2);
+	for ( set .@t, 1; .@t <= getarraysize($day_woe); set .@t, .@t+1){
+		announce "Dia: "+$day_woe[.@t-1]+" : "+$hour_init[(.@t-1)]+" : "+$hour_finish[(.@t-1)],0;
+		
+		if ( .@day == $day_woe[.@t-1] && .@hour >= $hour_init[(.@t-1)] && .@hour < $hour_finish[(.@t-1)] ){
+			announce "O Período de Guerras começou.",0;
+			agitstart;
+		}
+		
+		if ( .@day == $day_woe[.@t-1] && .@hour == $hour_finish[(.@t-1)] ){
+			announce "O Período de Guerras terminou.",0;
+			agitend;
+		}
+	}
+	end;
+		
+}
+
+-	script	woe_random	-1,{
+
+	OnInit:
+	setarray $@maps_woe$,
+		"aldeg_cas01",	//34,249
+		"aldeg_cas02",	//88,162
+		"aldeg_cas03",	//114,287
+		"aldeg_cas04",	//149,17
+		"aldeg_cas05",	//216,104
+		"gefg_cas01",	//34,139
+		"gefg_cas02",	//70,144
+		"gefg_cas03",	//103,280
+		"gefg_cas04",	//24,149
+		"gefg_cas05",	//99,201
+		"payg_cas01",	//214,47
+		"payg_cas02",	//273,61
+		"payg_cas03",	//226,25
+		"payg_cas04",	//252,272
+		"payg_cas05",	//62,255
+		"prtg_cas01",	//100,32
+		"prtg_cas02",	//43,230
+		"prtg_cas03",	//168,11
+		"prtg_cas04",	//86,13
+		"prtg_cas05";	//17,234
+		
+	setarray $coordenada, 
+		34,249,
+		88,162,
+		114,287,
+		149,17,
+		216,104,
+		34,139,
+		70,144,
+		103,280,
+		24,149,
+		99,201,
+		214,47,
+		273,61,
+		226,25,
+		252,272,
+		62,255,
+		100,32,
+		43,230,
+		168,11,
+		86,13,
+		17,234;
+	end;
+
+	OnAgitStart:
+	set $castle_sorted,0;
+	announce "[ Sorteio dos castelos iniciado ]",bc_all,"0x00ff00",FW_NORMAL,20;
+	sleep 5000;
+	set $castle_sorted, rand(getarraysize($@maps_woe$));
+	announce "Castelo [ "+getcastlename($@maps_woe$[$castle_sorted])+" ]",bc_all,"0x00ff00",FW_NORMAL,20;
+	end;
+}
