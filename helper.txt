@@ -1,0 +1,95 @@
+prontera,158,192,4	script	[ Helper ]	719,{
+
+	switch(select("~ Options [Cart/Falcon/Peco]:~ Cards Remover:~ Platinium Skills")){
+		case 1: callfunc ("negociante"); end;
+		case 2: callfunc ("removerCards"); end;
+		case 3: callfunc ("platiniumskillsfunc"); end;
+	}
+	
+}
+
+function	script	removerCards	{
+		//===== Configurações: =======================================
+			set .@falhar, 0;	// A remoção pode falhar? [1=Sim/0=Não]
+			set .@cobrar, 0;	// Cobrar zeny para o processo? [1=Sim/0=Não]
+			set .@zenys, 0;	// Se acima estiver 1, defina a quantidade de zenys.
+		//============================================================
+
+			mes "^B00400"+strnpcinfo(1)+"^000000";
+			mes "Eu tenho o poder místico de remover cartas presas em equipamentos.";
+			mes " ";
+			mes "Selecione o item para que eu possa analisá-lo.";
+			next;
+					for (set .@i, 1; .@i <= 10; set .@i, .@i + 1)
+					{
+						if (getequipisequiped(.@i))
+							set .@menu$, .@menu$ + ( getequipcardcnt(.@i) ? "^191970 ~ "+getequipname(.@i)+"^000000":"")+":";
+					}
+					set .@menu, select (.@menu$);
+					mes "^B00400"+strnpcinfo(1)+"^000000";
+					if (!getequipisequiped(.@menu))
+						callsub F_MesThenClose, "Não há nada equipado aí.";
+						
+					if (!checkweight(1202,(getequipcardcnt(.@menu)+1)))
+						callsub F_MesThenClose, "Você está com o peso acima do limite. Guarde alguns itens e tente novamente.";
+						
+					mes "O item escolhido possui ^B00400["+getequipcardcnt(.@menu)+"]^000000 "+( getequipcardcnt(.@menu) > 1 ? "cartas equipadas.":"carta equipada.");
+					mes " ";
+					if (.@cobrar) { mes "Pela remoção lhe cobrarei apenas ^B00400"+.@zenys+"z^000000!"; }
+					next;
+					if (select ("- Remover "+( getequipcardcnt(.@menu) > 1 ? "as ^B00400["+getequipcardcnt(.@menu)+"]^000000 cartas equipadas.":"a carta equipada.")+":- Cancelar") == 2) close;
+					set .@cartasremovidas, getequipcardcnt(.@menu);
+					mes "^B00400"+strnpcinfo(1)+"^000000";
+					if (.@falhar)
+					{
+						mes "Bem, antes de continuarmos, tenho que dizer que há uma pequena chance do processo falhar.";
+						mes "Suas cartas, seu item ou ambos podem ser destruídos. Qual você preza mais?";
+						if (select ("^191970- O item:- As cartas:- Cancelar^000000") == 3) close;
+						set .@escolhafalhar, @menu;
+						next;
+						mes "^B00400"+strnpcinfo(1)+"^000000";
+					}
+					if (.@cobrar)
+					{
+					
+					if (Zeny < .@zenys){ mes "Desculpe! Você não possui a quantidade de zenys requeridos."; close; }
+					set Zeny, Zeny - .@zenys; 
+					
+					}
+					if (.@falhar)
+					{
+						set .@chancefalhar, rand(100);
+						
+						if (.@chancefalhar < 0)
+						{
+							failedremovecards .@menu, 0;
+							callsub F_MesThenClose, "O processo foi uma falha total. Estou envergonhada, seu item e suas cartas foram destruídos.";
+						}
+						else if (.@chancefalhar < 8)
+						{
+							failedremovecards .@menu, .@escolhafalhar;
+							if (.@escolhafalhar)
+								callsub F_MesThenClose, "Eu falhei ao remover as cartas, e elas foram destruídas. O item está em perfeito estado.";
+							else
+								callsub F_MesThenClose, "Eu consegui remover as cartas, mas o seu item foi destruído.";
+						}
+						else if (.@chancefalhar < 10)
+						{
+							failedremovecards .@menu, 3;
+							callsub F_MesThenClose, "Eu falhei ao remover as cartas, e por sorte sua nada foi danificado.";
+						}
+					}
+					successremovecards .@menu;
+					mes "O processo foi um grande sucesso, tudo ocorreu nos conformes.";
+					mes " ";
+					mes "No total, ^B00400["+.@cartasremovidas+"]^000000 "+( .@cartasremovidas > 1 ? "cartas foram removidas.":"carta foi removida.");
+					close;
+			
+			F_MesThenClose:
+				mes getarg(0);
+				close;
+			return;
+			
+			cancel:
+			close;
+}

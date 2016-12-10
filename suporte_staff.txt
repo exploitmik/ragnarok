@@ -1,0 +1,197 @@
+prontera,22,205,4	script	[ Support Room ]#Jogador	475,{
+
+	set $@suporteatlanta$, "[ Sala de Suporte ]";
+
+	mes $@suporteatlanta$;
+	mes "Olá "+strcharinfo(0)+".";
+	mes "A Sala de Suporte está "+($sup_sala$ == "fechada" ? "^FF0000":"^00DD00")+$sup_sala$+"^000000.";
+	if ($sup_sala$ == "aberta") {
+		next;
+		mes $@suporteatlanta$;
+		mes "Prosseguindo você estará se cadastrando na Sala de Suporte.";
+		next;
+		mes $@suporteatlanta$;
+		mes "Para ser chamado você precisa constar na nossa lista de espera.";
+		mes "Deseja registrar-se?";
+		next;
+		if (select("Sim, por favor.:Não, obrigado.") == 2) {
+			close2;
+			end;
+		}
+		mes $@suporteatlanta$;
+		for (set .@i,0; .@i < getarraysize($sup_espera$); set .@i,.@i + 1) {
+			if ($sup_espera$[.@i] == strcharinfo(0)) {
+				mes "O seu nome já está na lista, aguarde alguns instantes e logo você será chamado.";
+				next;
+				if (select("Ok, vou esperar.:Quero sair da lista de espera.") == 1) close;
+				mes $@suporteatlanta$;
+				deletearray $sup_espera$[.@i],1;
+				mes "Pronto, o seu nome foi removido da lista.";
+				close2;	
+				donpcevent strnpcinfo(1)+"#Staff::OnRemove";		//NÃO MUDE ESTE EVENTO, POIS PODERÁ CAUSAR ERROS NO SCRIPT.
+				end;
+			}
+		}
+		set $sup_espera$[getarraysize($sup_espera$)], strcharinfo(0);
+		mes "Certo, seu nome está na lista de espera.";
+		mes "Quando você for chamado, uma mensagem aparecerá à você sem a necessidade de permanecer esperando aqui, mas cuidado com o tempo! Após o chamado você terá apenas 60 segundos para responder.";
+		close2;
+		donpcevent strnpcinfo(1)+"#Staff::OnAdd";			//NÃO MUDE ESTE EVENTO, POIS PODERÁ CAUSAR ERROS NO SCRIPT(2).
+		end;
+	}
+	close2;
+	end;
+	
+	OnInit:
+	hideonnpc strnpcinfo(0);
+	bindatcmd("suporte",strnpcinfo(0)+"::OnAtcommand");
+	end;
+	
+	OnAtcommand:
+		if ( .@atcmd_parameters$[0] == "on" ){
+			announce "[ Support Room ]: O período de Suporte in-game foi iniciado!",0;
+			set $sup_sala$,($sup_sala$ == "fechada" ? "aberta":"fechada");
+			hideoffnpc strnpcinfo(0);
+			movenpc strnpcinfo(0),156,181;
+		}else if ( .@atcmd_parameters$[0] == "off" ){
+			set $sup_sala$,($sup_sala$ == "fechada" ? "aberta":"fechada");
+			announce "[ Support Room ]: O período de Suporte in-game foi finalizado!",0;
+			movenpc strnpcinfo(0),22,205;
+			hideonnpc strnpcinfo(0);
+		}
+	end;
+}
+
+mosk_in,30,180,5	script	[ Support Room ]#Staff	475,{
+
+	set $@suporteatlanta$, "[ Sala de Suporte ]";
+	set .@mapasuporte$, "mosk_in"; set $x, 13; set $y, 179;			//Localização da Sala em que o Jogador será teleportado.
+	while (1) {
+		mes $@suporteatlanta$;
+		if (getgmlevel() < $lowest_gm) {
+			mes "Desculpe "+strcharinfo(0)+", mas estou a serviço da Staff.";
+			close2;
+			end;
+		}
+		if (($sup_sala$ == "fechada") || (@menu == 3)) {
+			mes "A Sala de Suporte está atualmente "+($sup_sala$ == "fechada" ? "^FF0000":"^00DD00")+$sup_sala$+"^000000, deseja realmente "+($sup_sala$ == "fechada" ? "^00DD00ativar":"^FF0000fechar")+"^000000 o suporte?";
+			next;
+			switch(select("Sim, faça-o.:Não agora.")){
+				
+			case 1:	
+				deletearray $sup_espera$[0],getarraysize($sup_espera$);
+				set $sup_sala$,($sup_sala$ == "fechada" ? "aberta":"fechada");
+				close2;
+				end;
+				
+			case 2:
+			close;
+			}
+			next;
+			mes $@suporteatlanta$;
+		}
+		mes "O que você deseja fazer?";
+		next;
+		if(select("Chamar o próximo jogador.:Ver a lista de espera.:"+($sup_sala$ == "fechada" ? "Abrir":"Fechar")+" A Sala de Suporte.:Sair.") == 4) {
+			close2;
+			end;
+		}
+		if (@menu <= 2) {
+			if (!getarraysize($sup_espera$)) {
+				mes $@suporteatlanta$;
+				mes "Não há nenhum jogador na lista de espera"+(($sup_sala$ == "aberta") ? " atualmente.":".");
+			} else {
+				mes $@suporteatlanta$;
+				if ((@menu == 1) && ($sup_sala$ == "aberta")) {
+					mes "Próximo atendimento: "+$sup_espera$[0];
+					mes "Atendimentos pendentes: "+(getarraysize($sup_espera$)-1);
+					close2;
+					goto OnCall;
+				}
+				if ((@menu == 2) && ($sup_sala$ == "aberta")){
+                for (set .@i,0; .@i < getarraysize($sup_espera$); set .@i,.@i + 1) mes (.@i+1)+". "+$sup_espera$[.@i];
+				mes "---------------------------";
+				mes "Atendimentos pendentes: "+getarraysize($sup_espera$);
+				close;
+			}
+            }
+			next;
+		}
+	}
+
+OnCall:
+	set .sup_atend,0;
+	if (!getarraysize($sup_espera$)) goto OnNoService;
+	sleep 2000;
+	initnpctimer;
+	set .sup_atend, getcharid(3,$sup_espera$[0]);
+	deletearray $sup_espera$[0],1;
+	if (!attachrid(.sup_atend)) {
+		sleep 2000;
+		npctalk "Chamada sem resposta, jogador offline!";
+		goto OnCall;
+	}
+	attachrid(.sup_atend);
+	mes $@suporteatlanta$;
+	mes "Você solicitou suporte! A Sala de Suporte já está disponível e o [GM] vai tirar suas dúvidas.";
+	mes "Vamos lá?";
+	mes "^ff0000( Responda em 60 segundos! )^000000";
+	if (select("Sim, por favor.:Não, obrigado.") == 2) {
+		close2;
+		if (.sup_atend == getcharid(3,strcharinfo(0))) {
+			npctalk "A chamada foi recusada.";
+			goto OnCall;
+		}
+		end;
+	}
+	if (.sup_atend == getcharid(3,strcharinfo(0))) {
+		close2;
+		npctalk "A chamada foi aceita, teleportando jogador...";
+		stopnpctimer;
+		sleep2 2000;
+		warp .@mapasuporte$,$x,$y;
+		end;
+	}
+	next;
+	mes $@suporteatlanta$;
+	mes "Você demorou para responder este chamado e o seu nome foi removido da lista de espera. Mais atenção!";
+	close2;
+	end;
+
+OnTimer1000:
+	npctalk "Estou aguardando a resposta do jogador chamado!";
+	end;
+	
+OnTimer30000:
+	npctalk "Estou aguardando a 30 segundos e ainda não obtive resposta do jogador!";
+	end;
+
+OnTimer60000:
+	stopnpctimer;
+	npctalk "Aguardei a confirmação por 60 segundos e infelizmente tive que retirá-lo da fila.";
+	sleep2 2000;
+	goto OnCall;
+	end;
+
+OnNoService:
+	stopnpctimer;
+	sleep 2000;
+	npctalk "Não há nenhum jogador na lista de espera!";
+	end;
+	
+OnAdd:
+	npctalk "Um novo jogador entrou na lista de espera. ("+getarraysize($sup_espera$)+" atendimento"+((getarraysize($sup_espera$) == 1) ? ")":"s)");
+	end;
+
+OnRemove:
+	if (!getarraysize($sup_espera$)) goto OnNoService;
+	npctalk "Um jogador removeu seu nome da lista de espera. ("+getarraysize($sup_espera$)+" atendimento"+((getarraysize($sup_espera$) == 1) ? ")":"s)");
+	end;
+
+OnInit:
+	set $sup_sala$,"fechada";
+	set .sup_atend,0;
+	deletearray $sup_espera$;
+	set $lowest_gm,80;
+	end;
+}

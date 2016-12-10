@@ -1,0 +1,17 @@
+-	script	curandeira	-1,{
+
+	OnInit:
+	set .delay_in_seconds, 10;
+	setarray .maps$, "prontera";
+	for( set .@i, 0; .@i<getarraysize(.maps$); set .@i, .@i+1)
+		setmapflag .maps$[.@i], mf_loadevent;
+	end;
+
+	OnPCLoadMapEvent:
+	if ( gettimetick(2) < #delay_buffs ) end;
+	set #delay_buffs, gettimetick(2)+.delay_in_seconds;
+	emotion 51, getcharid(0);
+	setarray .buffs, SC_BLESSING, SC_INCREASEAGI, SC_GLORIA, SC_ASSUMPTIO;
+	for ( set .@i,0; .@i<getarraysize(.buffs); set .@i, .@i+1)
+		sc_start .buffs[.@i],60000,0;
+}

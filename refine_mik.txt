@@ -1,0 +1,122 @@
+/*
+				.___  ___.  __   __  ___ 
+				|   \/   | |  | |  |/  / 
+				|  \  /  | |  | |  '  /  
+				|  |\/|  | |  | |    <   
+				|  |  |  | |  | |  .  \  
+				|__|  |__| |__| |__|\__\ 
+                         
+	= José Ferreiro v2016
+	= by Mikéias
+	= brAthena
+	= User: http://forum.brathena.org/index.php/user/11630-mikeias/
+
+*/
+
+
+
+prontera,145,197,4	script	[ Forjer ]	837,{
+
+	set .@refine_max, 10;						// REFINE MÁXIMO DO SEU SERVIDOR
+	set .@percent_refine, 50;					// CHANCE DE +1 REFINAMENTO BEM-SUCEDIDO
+	set .@nv_security, 5;						// NÍVEL DE SEGURANÇA ONDE NÃO HÁ CHANCE DE FALHA
+	setarray .@required_items, 607, 608, 609;	// ITENS REQUERIDOS PARA O REFINAMENTO
+	setarray .@required_quant, 3, 3, 3;			// QUANTIDADE DOS ITENS REQUERIDOS
+	setarray .@ticket_security, 1002, 1;		// TICKET DE REFINAMENTO SEGURO E QUANTIDADE
+	set .@lvlVIP, 1;							// LEVEL VIP DO SEU SERVIDOR
+	set .npcname$, "^800000[ Forjador ]^000000";
+	
+	mes .npcname$;
+	mes "Opa! Talvez eu possa refinar alguns de seus equipamentos. Está interessado em refinar qual?";
+	for (set .@i, 0; .@i < 10; set .@i, .@i + 1)
+		set .@menu$, .@menu$ + ( getequipisenableref(.@i+1) && getequiprefinerycnt(.@i+1) < .@refine_max ? ( getequipisequiped(.@i+1) ? "^2F4F4F~ "+getequipname((.@i+1))+" ["+getitemslots(getequipid(.@i+1))+"]^000000":""):"")+":";
+	next;
+	//set .@menu$, .@menu$;
+	set @equip, select(.@menu$);
+	mes .npcname$;
+	mes "Ótima escolha! E agora, como será?";
+	next;
+	switch(select("^2F4F4F[+] Refinamento Normal","[+] Refinamento Seguro","[-] Cancelar o procedimento^000000")){
+	case 1:
+		mes .npcname$;
+		mes "Quantas vezes eu devo refinar este equipamento? Lembrando que o nível de segurança é ["+.@nv_security+"]";
+		next;
+		input .@qvezes,0,10;
+		close2;
+		OnMaxRefine:
+		if ( !.@qvezes || (.@qvezes+getequiprefinerycnt(@equip)) > .@refine_max ){
+			mes .npcname$;
+			mes "Acho que não posso fazer nada com esse item! Só posso forjar equipamentos até o nível de refinamento ["+.@refine_max+"]";
+			close;
+		}
+			
+		OnTryAgain:
+		for (set .@i, 0; .@i < .@qvezes; set .@i, .@i + 1){
+	
+			for (set .@b, 0; .@b < getarraysize(.@required_items); set .@b, .@b + 1){
+				if ( countitem(.@required_items[.@b]) < .@required_quant[.@b] ){
+					mes .npcname$;
+					mes "Você não tem";
+					mes "^FF4500"+.@required_quant[.@b]+"x^000000 "+getitemname(.@required_items[.@b]);
+					mes "Sinto muito! Volte quando possuir todos os itens necessários.";
+					close;
+				}
+			}
+			for (set .@l, 0; .@l < getarraysize(.@required_items); set .@l, .@l + 1){
+				delitem .@required_items[.@l], .@required_quant[.@l];
+			}
+			if( rand(100) <= ( getequiprefinerycnt(@equip) <= .@nv_security ? 100 : (.@percent_refine-( getgmlevel() < .@lvlVIP ? getequiprefinerycnt(@equip):0)) ) ){
+				successrefitem @equip;
+				sleep2 250;
+			}else{
+				mes .npcname$;
+				mes "O refinamento falhou. Você acaba de perder seu equipamento! Tenha mais cuidado com o próximo que tentar.";
+				failedrefitem(@equip);
+				close2;
+				end;
+			}
+		}
+		if ( getequiprefinerycnt(@equip) >= .@refine_max ) goto OnMaxRefine;
+		mes .npcname$;
+		mes "O refinamento foi um sucesso!";
+		mes "O que devo fazer agora?";
+		if(select("^2F4F4FContinuar refinando normalmente:Parar por aqui^000000") == 2 ) close;
+		close2;
+		set .@qvezes,1;
+		goto OnTryAgain;
+		end;
+		
+	case 2:
+		OnRefSec:
+		if ( getequiprefinerycnt(@equip) >= .@refine_max ) goto OnMaxRefine;
+		set @counttick, countitem(.@ticket_security[0]);
+		mes .npcname$;
+		mes "Para usufruir do Refinamento Seguro você deve ter: ";
+		mes " - "+.@ticket_security[1]+"x "+getitemname(.@ticket_security[0]);
+		mes " ";
+		mes " ";
+		mes "Você possui ^FF4500"+@counttick+"x^000000 "+getitemname(.@ticket_security[0]);
+		if ( @counttick < .@ticket_security[1] ) close;
+		next;
+		if (select("Refinar:Não quero") == 2) close;
+		successrefitem @equip;
+		delitem .@ticket_security[0], .@ticket_security[1];
+		mes .npcname$;
+		mes "O refinamento foi um sucesso!";
+		mes "O que devo fazer agora?";
+		if(select("^2F4F4FContinuar refinando seguramente:Parar por aqui^000000") == 2 ) close;
+			close2;
+			goto OnRefSec;
+			end;
+		
+	case 3:
+		close;
+	
+	}
+
+	OnInit:
+	waitingroom "    Forjador",0;
+	end;
+
+
+}
