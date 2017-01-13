@@ -1,4 +1,19 @@
-		function	script	mes2	{
+/*
+				.___  ___.  __   __  ___ 
+				|   \/   | |  | |  |/  / 
+				|  \  /  | |  | |  '  /  
+				|  |\/|  | |  | |    <   
+				|  |  |  | |  | |  .  \  
+				|__|  |__| |__| |__|\__\ 
+                         
+	= Config & Random WOE
+	= by MikÃ©ias
+	= brAthena
+	= User: http://forum.brathena.org/index.php/user/11630-mikeias/
+
+*/
+
+function	script	mes2	{
 			mes $@woenamenpc$;
 			mes getarg(0);
 			return;
@@ -20,13 +35,13 @@
 		if(!agitcheck2() && !agitcheck()) set .@stats_gde$, "^FF0000Parada^000000"; else set .@stats_gde$, "^228B22Rolando^000000";
 
 		back_npc:
-		callfunc("mes2","Olá, "+strcharinfo(0)+"! Eu sei que estou velha, mas ainda posso lhe servir em algumas coisas. Estive em muitas Guerras do Emperium!");
+		callfunc("mes2","OlÃ¡, "+strcharinfo(0)+"! Eu sei que estou velha, mas ainda posso lhe servir em algumas coisas. Estive em muitas Guerras do Emperium!");
 		mes " ";
 		mes "Guerra do Emperium: "+.@stats_gde$;
 		next;
 		switch(select((!agitcheck() && !agitcheck2() ? "":"- Entrar no Castelo."),
-			"- Horários.",
-			"- Resgatar Premiação ^B00400["+( $win_woe$ == strcharinfo(0) ? "1":"0")+"]^000000",
+			"- HorÃ¡rios.",
+			"- Resgatar PremiaÃ§Ã£o ^B00400["+( $win_woe$ == strcharinfo(0) ? "1":"0")+"]^000000",
 			"- Cancelar.")){
 		
 			// teleport for the sorted drawn
@@ -36,7 +51,7 @@
 					close;
 				}
 				if( !getcharid(2) ){
-						callfunc("mes2","Você não está em uma Guild!");
+						callfunc("mes2","VocÃª nÃ£o estÃ¡ em uma Guild!");
 						close;
 				}
 				warp $@maps_woe$[$castle_sorted],$coordenada[($castle_sorted*2)],$coordenada[($castle_sorted*2)+1];
@@ -50,7 +65,7 @@
 			// reward
 			case 3:
 					if ( agitcheck() || agitcheck2() ){
-						callfunc("mes2","Neste momento não é possível acessar essa opção. A Guerra do Emperium está atíva!");
+						callfunc("mes2","Neste momento nÃ£o Ã© possÃ­vel acessar essa opÃ§Ã£o. A Guerra do Emperium estÃ¡ atÃ­va!");
 						close;
 					}
 				callfunc("mes2","Recompensa:");
@@ -63,13 +78,13 @@
 				next;
 				if ( $win_woe$ == strcharinfo(0)) {
 					if ( callfunc("verifpeso") ){
-						callfunc ("mes2","Por favor, verifique seus itens e se seu peso está acima de 90%!");
+						callfunc ("mes2","Por favor, verifique seus itens e se seu peso estÃ¡ acima de 90%!");
 						close;
 					}
-					callfunc("mes2","Meus parabéns! Aqui está sua recompensa por esta dura batalha.");
+					callfunc("mes2","Meus parabÃ©ns! Aqui estÃ¡ sua recompensa por esta dura batalha.");
 					set $win_woe$, "";
 					for( set .@i, 0; .@i < getarraysize(.premios); set .@i, .@i + 1) getitem .premios[.@i], .quantias[.@i];
-					announce (Sex? "O":"A")+" líder [ "+strcharinfo(0)+" ] resgatou a recompensa da guild [ "+getguildname(getcharid(2))+" ]",bc_all;
+					announce (Sex? "O":"A")+" lÃ­der [ "+strcharinfo(0)+" ] resgatou a recompensa da guild [ "+getguildname(getcharid(2))+" ]",bc_all;
 					close;
 				}
 					goto back_npc;
@@ -94,34 +109,34 @@ function	script	define_input	{
 -	script	hour_woe	-1,{
 
 	OnHours:
-	setarray $@name_days$[1], "Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado";
+	setarray $@name_days$[1], "Domingo","Segunda","TerÃ§a","Quarta","Quinta","Sexta","SÃ¡bado";
 		mes $@woenamenpc$;
 		if ( !($hour_init[0]+$hour_finish[0]) ){
-				mes "Atualmente nenhum horário está configurado!";
+				mes "Atualmente nenhum horÃ¡rio estÃ¡ configurado!";
 				if ( getgmlevel() < 20 ) close;
 		}
 		mes " ";
 		for ( set .@d, 1; .@d <= getarraysize($day_woe); set .@d, .@d+1){
 			mes $@name_days$[$day_woe[.@d-1]];
-			mes "       ^228B22Início^000000: "+$hour_init[.@d-1]+"h ~ ^B00400Término^000000: "+$hour_finish[.@d-1]+"h";
+			mes "       ^228B22InÃ­cio^000000: "+$hour_init[.@d-1]+"h ~ ^B00400TÃ©rmino^000000: "+$hour_finish[.@d-1]+"h";
 		}
 	if ( getgmlevel() < 20 ) close;
 	next;
-	switch(select("Adicionar um novo horário:Resetar todos os horários:Cancelar")){
+	switch(select("Adicionar um novo horÃ¡rio:Resetar todos os horÃ¡rios:Cancelar")){
 	
 		//add
 		case 1:
 			back_npc:
-			callfunc("mes2","Então vai adicionar mais um dia de GdE? Tenha cuidado ao fazer isso!");
-			mes "Por favor, selecione o dia da semana em que iniciará.";
+			callfunc("mes2","EntÃ£o vai adicionar mais um dia de GdE? Tenha cuidado ao fazer isso!");
+			mes "Por favor, selecione o dia da semana em que iniciarÃ¡.";
 			for (set .@i, 1; .@i < getarraysize($@name_days$); set .@i, .@i + 1)
 				set .@day_week$, .@day_week$ + "~ "+$@name_days$[.@i] + ":";
 			next;
 			set .@day_week, select (.@day_week$);
-			set .@hour_init, callfunc("define_input","início");
-			set .@hour_finish, callfunc("define_input","término");
+			set .@hour_init, callfunc("define_input","inÃ­cio");
+			set .@hour_finish, callfunc("define_input","tÃ©rmino");
 			if ( ( .@hour_init == 23 ? 0:.@hour_finish < .@hour_init) ){
-				callfunc("mes2","O horário de término não pode ser menor do que o de início!");
+				callfunc("mes2","O horÃ¡rio de tÃ©rmino nÃ£o pode ser menor do que o de inÃ­cio!");
 				next;
 				goto back_npc;
 				end;
@@ -129,18 +144,18 @@ function	script	define_input	{
 			setarray $day_woe[getarraysize($day_woe)], .@day_week;
 			setarray $hour_init[getarraysize($hour_init)], .@hour_init;
 			setarray $hour_finish[getarraysize($hour_finish)], .@hour_finish;
-			message strcharinfo(0), "Horário adicionado: "+$@name_days$[.@day_week]+" das "+.@hour_init+"h às "+.@hour_finish+"h";
+			message strcharinfo(0), "HorÃ¡rio adicionado: "+$@name_days$[.@day_week]+" das "+.@hour_init+"h Ã s "+.@hour_finish+"h";
 			close;
 			
 		//reset
 		case 2:
-			callfunc("mes2","Senhor"+(Sex? "":"a")+", você está ciente do seu pedido?");
+			callfunc("mes2","Senhor"+(Sex? "":"a")+", vocÃª estÃ¡ ciente do seu pedido?");
 			next;
-			if(select("Não estou:Tenho certeza") == 1) close;
+			if(select("NÃ£o estou:Tenho certeza") == 1) close;
 			deletearray $day_woe;
 			deletearray $hour_init;
 			deletearray $hour_finish;
-			message strcharinfo(0), "Horários resetados!";
+			message strcharinfo(0), "HorÃ¡rios resetados!";
 			close;
 		
 		//exit
@@ -159,12 +174,12 @@ function	script	define_input	{
 		announce "Dia: "+$day_woe[.@t-1]+" : "+$hour_init[(.@t-1)]+" : "+$hour_finish[(.@t-1)],0;
 		
 		if ( .@day == $day_woe[.@t-1] && .@hour >= $hour_init[(.@t-1)] && .@hour < $hour_finish[(.@t-1)] ){
-			announce "O Período de Guerras começou.",0;
+			announce "O PerÃ­odo de Guerras comeÃ§ou.",0;
 			agitstart;
 		}
 		
 		if ( .@day == $day_woe[.@t-1] && .@hour == $hour_finish[(.@t-1)] ){
-			announce "O Período de Guerras terminou.",0;
+			announce "O PerÃ­odo de Guerras terminou.",0;
 			agitend;
 		}
 	}
