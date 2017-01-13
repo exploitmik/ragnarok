@@ -1,3 +1,18 @@
+/*
+				.___  ___.  __   __  ___ 
+				|   \/   | |  | |  |/  / 
+				|  \  /  | |  | |  '  /  
+				|  |\/|  | |  | |    <   
+				|  |  |  | |  | |  .  \  
+				|__|  |__| |__| |__|\__\ 
+                         
+	= Simple Healer
+	= by Mikéias
+	= brAthena
+	= User: http://forum.brathena.org/index.php/user/11630-mikeias/
+
+*/
+
 -	script	curandeira	-1,{
 
 	OnInit:
