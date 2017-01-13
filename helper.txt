@@ -1,3 +1,18 @@
+/*
+				.___  ___.  __   __  ___ 
+				|   \/   | |  | |  |/  / 
+				|  \  /  | |  | |  '  /  
+				|  |\/|  | |  | |    <   
+				|  |  |  | |  | |  .  \  
+				|__|  |__| |__| |__|\__\ 
+                         
+	= Helper
+	= by MikÃ©ias
+	= brAthena
+	= User: http://forum.brathena.org/index.php/user/11630-mikeias/
+
+*/
+
 prontera,158,192,4	script	[ Helper ]	719,{
 
 	switch(select("~ Options [Cart/Falcon/Peco]:~ Cards Remover:~ Platinium Skills")){
@@ -9,16 +24,16 @@ prontera,158,192,4	script	[ Helper ]	719,{
 }
 
 function	script	removerCards	{
-		//===== Configurações: =======================================
-			set .@falhar, 0;	// A remoção pode falhar? [1=Sim/0=Não]
-			set .@cobrar, 0;	// Cobrar zeny para o processo? [1=Sim/0=Não]
+		//===== ConfiguraÃ§Ãµes: =======================================
+			set .@falhar, 0;	// A remoÃ§Ã£o pode falhar? [1=Sim/0=NÃ£o]
+			set .@cobrar, 0;	// Cobrar zeny para o processo? [1=Sim/0=NÃ£o]
 			set .@zenys, 0;	// Se acima estiver 1, defina a quantidade de zenys.
 		//============================================================
 
 			mes "^B00400"+strnpcinfo(1)+"^000000";
-			mes "Eu tenho o poder místico de remover cartas presas em equipamentos.";
+			mes "Eu tenho o poder mÃ­stico de remover cartas presas em equipamentos.";
 			mes " ";
-			mes "Selecione o item para que eu possa analisá-lo.";
+			mes "Selecione o item para que eu possa analisÃ¡-lo.";
 			next;
 					for (set .@i, 1; .@i <= 10; set .@i, .@i + 1)
 					{
@@ -28,22 +43,22 @@ function	script	removerCards	{
 					set .@menu, select (.@menu$);
 					mes "^B00400"+strnpcinfo(1)+"^000000";
 					if (!getequipisequiped(.@menu))
-						callsub F_MesThenClose, "Não há nada equipado aí.";
+						callsub F_MesThenClose, "NÃ£o hÃ¡ nada equipado aÃ­.";
 						
 					if (!checkweight(1202,(getequipcardcnt(.@menu)+1)))
-						callsub F_MesThenClose, "Você está com o peso acima do limite. Guarde alguns itens e tente novamente.";
+						callsub F_MesThenClose, "VocÃª estÃ¡ com o peso acima do limite. Guarde alguns itens e tente novamente.";
 						
 					mes "O item escolhido possui ^B00400["+getequipcardcnt(.@menu)+"]^000000 "+( getequipcardcnt(.@menu) > 1 ? "cartas equipadas.":"carta equipada.");
 					mes " ";
-					if (.@cobrar) { mes "Pela remoção lhe cobrarei apenas ^B00400"+.@zenys+"z^000000!"; }
+					if (.@cobrar) { mes "Pela remoÃ§Ã£o lhe cobrarei apenas ^B00400"+.@zenys+"z^000000!"; }
 					next;
 					if (select ("- Remover "+( getequipcardcnt(.@menu) > 1 ? "as ^B00400["+getequipcardcnt(.@menu)+"]^000000 cartas equipadas.":"a carta equipada.")+":- Cancelar") == 2) close;
 					set .@cartasremovidas, getequipcardcnt(.@menu);
 					mes "^B00400"+strnpcinfo(1)+"^000000";
 					if (.@falhar)
 					{
-						mes "Bem, antes de continuarmos, tenho que dizer que há uma pequena chance do processo falhar.";
-						mes "Suas cartas, seu item ou ambos podem ser destruídos. Qual você preza mais?";
+						mes "Bem, antes de continuarmos, tenho que dizer que hÃ¡ uma pequena chance do processo falhar.";
+						mes "Suas cartas, seu item ou ambos podem ser destruÃ­dos. Qual vocÃª preza mais?";
 						if (select ("^191970- O item:- As cartas:- Cancelar^000000") == 3) close;
 						set .@escolhafalhar, @menu;
 						next;
@@ -52,7 +67,7 @@ function	script	removerCards	{
 					if (.@cobrar)
 					{
 					
-					if (Zeny < .@zenys){ mes "Desculpe! Você não possui a quantidade de zenys requeridos."; close; }
+					if (Zeny < .@zenys){ mes "Desculpe! VocÃª nÃ£o possui a quantidade de zenys requeridos."; close; }
 					set Zeny, Zeny - .@zenys; 
 					
 					}
@@ -63,15 +78,15 @@ function	script	removerCards	{
 						if (.@chancefalhar < 0)
 						{
 							failedremovecards .@menu, 0;
-							callsub F_MesThenClose, "O processo foi uma falha total. Estou envergonhada, seu item e suas cartas foram destruídos.";
+							callsub F_MesThenClose, "O processo foi uma falha total. Estou envergonhada, seu item e suas cartas foram destruÃ­dos.";
 						}
 						else if (.@chancefalhar < 8)
 						{
 							failedremovecards .@menu, .@escolhafalhar;
 							if (.@escolhafalhar)
-								callsub F_MesThenClose, "Eu falhei ao remover as cartas, e elas foram destruídas. O item está em perfeito estado.";
+								callsub F_MesThenClose, "Eu falhei ao remover as cartas, e elas foram destruÃ­das. O item estÃ¡ em perfeito estado.";
 							else
-								callsub F_MesThenClose, "Eu consegui remover as cartas, mas o seu item foi destruído.";
+								callsub F_MesThenClose, "Eu consegui remover as cartas, mas o seu item foi destruÃ­do.";
 						}
 						else if (.@chancefalhar < 10)
 						{
